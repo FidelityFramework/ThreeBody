@@ -6,21 +6,19 @@ In 2008, Liu Cixin published *The Three-Body Problem*, the first volume of a tri
 
 We owe Liu Cixin and the production teams at Netflix, Plan B, and Yoozoo a genuine debt of gratitude. Their work cultivated interest in physics and mathematics at a scale that no textbook or lecture series could match. When a Netflix viewer asks "is the three-body problem really unsolvable?" they have taken the first step toward understanding computational complexity, numerical methods, and the relationship between mathematical models and physical reality. That curiosity is a gift to STEM education, and this project exists in part because of the cultural space they created.
 
-## Where the Fiction Departs from the Physics
+## Where the Story Stops
 
-The novels and series frame the three-body problem as fundamentally mysterious and chaotic, depicting a system so unpredictable that an advanced civilization cannot determine when their next stable era will arrive. This makes for extraordinary storytelling. 
+The novels and series frame the three-body problem as fundamentally chaotic, depicting a system so unpredictable that an advanced civilization cannot determine when their next stable era will arrive. This is not wrong. The three-body problem *is* chaotic. It *is* sensitive to initial conditions. Small differences in starting values produce large differences in outcomes over time, and Poincaré proved in the 1890s that no single algebraic formula produces a general solution for arbitrary initial conditions.
 
-> It is also, in important ways, ***not*** accurate.
+The fiction tells this part of the story well, and it makes for extraordinary drama.
 
-### The Problem Is Not Unsolvable
+> But the story stops here, and the physics continues.
 
-The gravitational three-body problem asks a straightforward question: given three masses with known positions and velocities, predict their future trajectories. The answer is that this is not unsolvable. It is not even particularly mysterious. What it is, precisely, is *sensitive to initial conditions* and *not expressible in closed-form general solutions*.
+### The Question the Fiction Doesn't Ask
 
-These are different statements with different implications:
+What Poincaré proved is that a certain line of mathematical inquiry was closed. He did not prove that the problem is unknowable. The absence of a closed-form general solution does not mean we cannot compute trajectories. It means we compute them numerically, step by step, and the quality of that computation depends on the precision of our arithmetic.
 
-**No closed-form general solution** means there is no single algebraic formula that produces the answer for arbitrary initial conditions. This was proven by Poincaré in the 1890s, and it ended a specific line of mathematical inquiry. It did not end our ability to compute trajectories.
-
-**Sensitive to initial conditions** means that small differences in starting values produce large differences in outcomes over time. This is the hallmark of chaotic systems. But "chaotic" does not mean "unknowable." It means that the precision of your answer depends on the precision of your arithmetic.
+"Chaotic" does not mean "unknowable." It means that the precision of your answer depends on the precision of your arithmetic. That distinction is where this project begins.
 
 ### Numerical Integration Works
 
@@ -36,7 +34,7 @@ IEEE 754 floating-point arithmetic is the standard used by virtually every proce
 
 > This is arithmetic with choices attached and consequences that result.
 
-The three-body problem is not unpredictable because physics is mysterious. It becomes unpredictable when your arithmetic runs out of precision. The truth of mathematical accuracy is more interesting than a fantasy narrative: the question is not "can we solve this?" but "can we solve this *precisely enough* with the arithmetic available to us?"
+The three-body problem is not unpredictable because physics is mysterious. It becomes unpredictable when your arithmetic runs out of precision. The fiction gave us the drama of chaos. The question it left on the table is: "can we solve this *precisely enough* with the arithmetic available to us?"
 
 ## Enter B-Posit Arithmetic
 
@@ -52,9 +50,7 @@ For our purposes, two properties of b-posit arithmetic are directly material:
 
 **Tapered precision.** Within what the spec calls the "Golden Zone" (roughly 10^-20 to 10^20 for 32-bit b-posit), the format provides more significand bits than an IEEE float of the same width. Near 1.0, where most scientific values cluster, the advantage is substantial. IEEE floats maintain more uniform precision at extreme magnitudes. The formats have different strengths in different regimes, and this demo is designed to show exactly where those boundaries fall.
 
-For gravitational simulation, these properties have a concrete and measurable consequence. Close-encounter force computations routed through b-posit arithmetic with quire accumulation produce results that are provably more accurate than the same computation in IEEE FP64, while using fewer bits. The energy drift graph over a long simulation run tells this story visually. 
-
-> Where IEEE FP64 gradually loses energy conservation, the b-posit path maintains it.
+For gravitational simulation, these properties have a concrete and measurable consequence. Close-encounter force computations routed through b-posit arithmetic with quire accumulation produce results that are provably more accurate than the same computation in IEEE FP64, while using fewer bits. The proof is simple: run the simulation forward, reverse it, and see which path returns to its starting position. The b-posit path comes home. The IEEE path does not.
 
 ## Why This Demo Matters
 
@@ -72,14 +68,15 @@ The right answer is to use all four simultaneously, with each processor handling
 
 ### What the Application Surfaces
 
-The Three Body visualization is designed to make the heterogeneous compute story *visible*:
+Two identical simulations run side by side from the same initial conditions: three equal-mass bodies at the vertices of a right triangle, released from rest. The left pane routes close-encounter force computation through b-posit arithmetic on the FPGA. The right pane uses IEEE FP64 on the CPU. Same physics, same timestep, same code.
 
-- **Body halos** appear when particle pairs enter the b-posit precision regime, showing the audience exactly which computation has moved to the FPGA.
-- **Per-processor telemetry panels** display real-time utilization, power draw, and throughput for each processor, making the workload distribution tangible.
-- **Regime classification** is shown as color coding on the particles themselves, so the audience sees the simulation transpose in real time.
-- **Energy conservation graph** provides the scientific result: b-posit quire arithmetic maintains conservation where IEEE float degrades.
+The audience watches both panes evolve. At first, the trails are identical. Gradually, they diverge. The left pane's FPGA board blinks as close-encounter pairs stream through the b-posit pipeline. The right pane's close encounters go through standard float arithmetic and nobody touches the board.
 
-The FPGA dev board sits on the desk, connected by USB-C, with its LEDs blinking as pairs stream through the b-posit pipelines. An audience would see the computation move to custom arithmetic hardware and return. We'll use motion graphics and blinking LEDs on the FPGA board for illustration, but the key is the math itself.
+When the divergence is visually clear, both simulations freeze. All velocities reverse. Both simulations run backward the same number of steps. The b-posit pane's bodies return to the starting triangle. The FP64 pane's bodies do not.
+
+> One path found its way home. The other got lost.
+
+The starting triangle is its own ground truth. The audience does not need to understand energy conservation or Noether's theorem. They can see that one simulation is reversible and the other is not, and the only difference is the arithmetic used for close encounters.
 
 ### The Compiler Story
 
@@ -87,8 +84,18 @@ All four processor targets are compiled from a single Clef codebase by the same 
 
 This is the thesis of the entire Fidelity framework: one language, one compiler, any processor. The Three Body demo is the first application that exercises all four targets simultaneously, supervised by a single actor topology, with workload placement decisions made ***at*** runtime ***without*** a managed runtime.
 
+### The Reversibility Horizon
+
+Every chaotic system has what we call a reversibility horizon: the number of forward steps you can take and still reverse accurately back to your starting point. Beyond that horizon, accumulated numerical error exceeds the precision needed to retrace the path. The toothpaste does not go back in the tube.
+
+IEEE FP64 hits this horizon relatively early. B-posit arithmetic, with its quire accumulation preserving exactness at every intermediate step, extends the horizon considerably further. The demo is tuned to find the sweet spot where b-posit still returns home and IEEE float does not.
+
+But b-posit is not the end of the story. Standard (unbounded) posit arithmetic, where the regime field has no fixed-width bound, would extend the reversibility horizon further still. The tradeoff is computational: unbounded posits require sequential decoding (the very problem b-posit was designed to solve), making them impractical in hardware at the speeds the demo requires. B-posit's bounded regime field is what makes the 39% decode speed advantage possible. It is a deliberate engineering choice: sacrifice some of the format's theoretical precision ceiling in exchange for hardware that actually runs faster than IEEE floats.
+
+The precision spectrum is real and continuous: IEEE float, then b-posit, then unbounded posit, each extending the horizon at increasing computational cost. This demo sits at the b-posit point on that spectrum because it represents the best balance of precision and performance that current hardware can deliver.
+
 ### A New Era
 
 We believe this represents a meaningful shift in how systems workloads will be structured. The era of "write for one processor, hope the hardware is fast enough" is giving way to workload-aware targeting where the compiler and runtime cooperate to place computation on the silicon best suited for it.
 
-The three-body problem is not unsolvable. It is a question of precision. With the right arithmetic, on the right hardware, managed by software that understands both, the problem not only becomes tractable - it practically becomes trivial. The fiction raised the question, and the truth of our demo will answer it.
+The three-body problem is not unsolvable. It is a question of precision, and precision is a question of arithmetic. The fiction raised the question. The physics gives us the tools to answer it. This demo shows exactly how far those tools reach today, and where the next generation of numerical formats will take us.
