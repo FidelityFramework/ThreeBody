@@ -1,0 +1,55 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+
+# Fidelity/Clef compiler output
+targets/
+target/
+deps/
+**/build/
+
+# NuGet / .NET
+*.nupkg
+*.snupkg
+*.binlog
+project.lock.json
+project.fragment.lock.json
+
+# Local assistant/IDE metadata
+.claude/
+.gemini/
+.serena/
+.azuredevops/
+.vscode/
+.config/
+.devcontainer/
+.idea/
+.ionide/
+
+# OS
+.DS_Store
+Thumbs.db
+*~
+~$*
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# FPGA build artifacts
+*.bit
+*.bin
+*.xclbin
+*.ltx
+*.jou
+*.log
+vivado/
+.Xil/
