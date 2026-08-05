@@ -25,15 +25,22 @@ src/        Clef source
 ## Key Technologies
 
 - **Clef** -- Concurrent language targeting heterogeneous compute
-- **B-posit arithmetic** -- Bounded posit format with fixed 800-bit quire for lossless accumulation
+- **B-posit arithmetic** -- Bounded posit format (es=2) with a 512-bit quire (`n²/2` for posit32) for lossless accumulation
 - **Prospero/Olivier** -- Actor supervision across all four processors
-- **BAREWire** -- IPC protocol connecting actors and USB-C FPGA sidecar
+- **BAREWire** -- IPC and wire protocol connecting actors and the FPGA sidecar over Layer 2 Ethernet
 - **Platform.Display** -- Native Wayland rendering (no WebView)
 
 ## Hardware
 
 - ASUS ROG Z13 Flow (Strix Halo: Zen 5 + RDNA 3.5 + XDNA 2)
-- Digilent Arty A7-100T (FPGA sidecar via USB-C)
+- Digilent Arty A7-100T (FPGA sidecar over Layer 2 Ethernet, RJ45)
+
+> **Why Layer 2 Ethernet.** Latency dominates this workload: close-encounter
+> regimes hand work to the FPGA and need the result back inside a timestep, so
+> round-trip cost matters more than raw bandwidth. Raw Layer 2 frames over RJ45
+> — bridged with eBPF/wBPF, no IP stack in the path — give the lowest latency
+> available short of PCIe, and PCIe is not on offer between this host and this
+> board. USB-C, used earlier in the design, does not serve the role.
 
 ## License
 

@@ -19,7 +19,7 @@ This configuration is chosen deliberately:
 
 Two simulation panes displayed side by side, running in lockstep from identical initial conditions and the same timestep:
 
-**Left pane (b-posit):** Close-encounter force computations route to the FPGA sidecar running b-posit32 arithmetic with 800-bit quire accumulation. All other computation (bulk forces, orchestration) runs on CPU/GPU. FPGA board LEDs blink when pairs stream through the b-posit pipeline.
+**Left pane (b-posit):** Close-encounter force computations route to the FPGA sidecar running b-posit32 arithmetic (eS=5) with fixed 800-bit quire accumulation. All other computation (bulk forces, orchestration) runs on CPU/GPU. FPGA board LEDs blink when pairs stream through the b-posit pipeline.
 
 **Right pane (IEEE FP64):** All computation runs on CPU. Close encounters use standard IEEE double precision. No FPGA involvement. The board sits dark.
 
@@ -97,7 +97,7 @@ Three points on the precision continuum are relevant:
 
 **IEEE FP64.** 15-16 significant digits. Fixed-width significand. Catastrophic cancellation in close-encounter subtraction. Hits the reversibility horizon earliest.
 
-**B-posit32 with quire.** Tapered precision favoring the golden zone where scientific values cluster. 800-bit quire provides exact intermediate accumulation. The only rounding occurs at final conversion. Extends the reversibility horizon well beyond IEEE FP64. The bounded regime field (rS=6) enables a 39% decode speed advantage over IEEE float32 in hardware.
+**B-posit32 with quire (eS=5).** A fixed 800-bit quire (a vector of 25 32-bit integers, independent of precision) provides exact intermediate accumulation of the pairwise-force dot products. The only rounding occurs at final conversion; every intermediate result is exact. This exactness — not any near-zero precision property — is what survives the close-encounter subtraction `qᵢ−qⱼ` where IEEE FP64 catastrophically cancels, and what extends the reversibility horizon well beyond IEEE FP64. The bounded regime field keeps b-posit decode fast enough for hardware (a parallel MUX rather than sequential regime decoding).
 
 **Unbounded posit.** Standard posit format without the regime bound. Would extend the reversibility horizon further still, because the variable-length regime field provides even more dynamic range. The tradeoff is computational: unbounded posits require sequential decoding (a long barrel-shift chain), which is exactly the hardware bottleneck that b-posit's bounded regime was designed to eliminate. For the demo's purposes, unbounded posits are too slow to run at interactive framerates on the FPGA.
 

@@ -24,10 +24,27 @@ Trained neural surrogate approximating Barnes-Hut tree for distant body groups.
 Streaming, sustained, low-power inference.
 
 ### FPGA: Close Encounters with B-Posit Arithmetic
-Gravitational force near 1/r^2 singularity. IEEE FP64 loses precision exactly where
-it matters most. B-posit arithmetic (bounded regime rS=6, eS=5) with 800-bit fixed
-quire provides lossless accumulation. B-posit32 decoder is 39% faster than IEEE
-float32 decode via MUX-based parallel decode (no LBC, no barrel shifter).
+The force law is the true `G·m₁·m₂/(r₁−r₂)²`. Near the close-encounter singularity,
+the subtraction `r₁−r₂` of nearly-equal large coordinates is where IEEE FP64 loses
+significance, and exact accumulation does not. B-posit arithmetic (eS=5) with a
+fixed 800-bit quire (a vector of 25 32-bit integers, independent of precision) provides lossless accumulation of the pairwise-force
+dot products — the mechanism that survives an FP64+Kahan control exactly at the
+`qᵢ−qⱼ` and `1/r²` sites where Kahan cannot reach.
+
+**The singularity is carried, not smoothed.** Because the force kernel has no nonzero
+lower bound on `r` in dataflow, intrinsic (Tier-1) representation selection cannot
+bound it and *correctly falls through* — and the demo's contract is that this
+fall-through is **loud**: Composer emits an unobservable-range diagnostic rather than
+ever fabricating a floor. The honest substitute for a fabricated floor is a
+*domain-of-validity* bound — a minimum-approach `r ≥ r_min` invariant supplied by a
+range law or companion attribute, never a hard-coded constant — which bounds the
+*domain* without deforming the *law*. The close-encounter node is then sealed
+(Tier-3) to b-posit32+quire at the force site. This sealed, domain-bounded singular
+node is *why* the close-encounter regime binds to the exact-arithmetic target: the
+regime routing in the table above is a consequence of this node's structure, not an
+arbitrary assignment. (On the deliberate refusal to add a softening term to the
+denominator, and why that refusal is the rigorous celestial-mechanics position
+rather than a contrarian one, see [`no-softening-treatment.md`](no-softening-treatment.md).)
 
 ### CPU: Orchestration
 Simulation loop, timestep integration, regime classification, tree construction,
@@ -46,7 +63,7 @@ Prospero (Supervisor -- OneForOne restart strategy)
 +-- Telemetry         actor  ->  hardware counter collection + display
 ```
 
-Fault tolerance: FPGA USB-C disconnect -> actor dies -> Prospero restarts on
+Fault tolerance: FPGA link loss -> actor dies -> Prospero restarts on
 reconnection. Simulation degrades gracefully, then recovers automatically.
 
 ## Dimensional Types
@@ -95,5 +112,5 @@ Alex emits MLIR ->
 
 - **Composer**: Compiler (Alex middle-end, MLIR backends)
 - **Fidelity.Platform**: Display, Console, Compute, Perf subsystems
-- **BAREWire**: IPC/memory protocol connecting actors and USB-C sidecar
+- **BAREWire**: IPC/memory/wire protocol connecting actors and the FPGA sidecar
 - **Warhol**: Three-target predecessor (CPU/GPU/NPU, no FPGA)
